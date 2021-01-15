@@ -9,7 +9,7 @@ import json
 import glob
 
 # Our base URL includes the term 'france', which precises we want the french prices for the wines
-BASE_URL = "https://www.wine-searcher.com/find/{}/1/france"
+BASE_URL = "https://www.idealwine.com/uk/wine-prices/{}-grand-cru-classe.jsp"
 
 session = requests.Session()
 HEADERS = {
@@ -19,21 +19,26 @@ HEADERS = {
     )
 }
 DATA_DIR = "data"
-FILENAME = "vivino-data"
+FILENAME = "idealwine-data"
 
-premiers_grands_crus_classes = ['chateau','Château Lafite Rothschild Pauillac', 'Château Latour Pauillac', 'Château Mouton Rothschild Pauillac', 'Château Margaux', 'Château Haut-Brion Pessac-léognan']
+premiers_grands_crus_classes = ['Château Lafite Rothschild Pauillac', 'Château Latour Pauillac', 'Château Mouton Rothschild Pauillac', 'Château Margaux', 'Château Haut-Brion Pessac-léognan']
+for i in range(len(premiers_grands_crus_classes)):
+    premiers_grands_crus_classes[i] = premiers_grands_crus_classes[i].replace(' ', '-')
+print(premiers_grands_crus_classes)
+
 label = '(Premier Grand Cru Classé)'
 
 class Scraper:
-    """Scraper for Vivino.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
+    """Scraper for iDealwine.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
 
     def __init__(
-        self, vineyard_list, clear_old_data=True
+        self, vineyard_list, min_vintage, clear_old_data=True
     ):
         self.clear_old_data = clear_old_data
         self.session = requests.Session()
         self.start_time = time.time()
         self.vineyard_list = vineyard_list
+        self.min_vintage = min_vintage
 
     def scrape_site(self):
         if self.clear_old_data:
@@ -60,52 +65,27 @@ class Scraper:
                 raise
 
         soup = BeautifulSoup(response.content, "html.parser")
-
-        print(soup)
-        labels = soup.find_all('span', {'class': 'text-truncate-2lines'})
-        print(labels)
-        exit()
-        # Find all items in the global list
-        wines = soup.find_all("span", {"class": "header-smaller text-block wine-card__name"})
-
-
-        print(wines)
-        exit()
-        # With the precision of our request, the target wine normally shows up first
-        wine_link = 'https://www.vivino.com' + wines[0].find('a')['href']
-
-        wine_response = self.session.get(wine_link, headers=HEADERS)
-
-        wine_soup = BeautifulSoup(wine_response.content, "html.parser")
-        scrape_data = self.parse_vineyard(wine_soup)
+        # With the precision of our request, the target wine normally shows up first, thus we get it with index 0
+        wine_link = soup.find_all("table", {"id": "tbResult"})[0].a['href']
+        
+        wine_url = 'https://www.idealwine.com' + wine_link
+        print(wine_url)
+        
+        scrape_data = []
+        year=2017
+        while year >= self.min_vintage:
+            wine_response = self.session.get(wine_url.replace('2017', str(year)), headers=HEADERS)
+            wine_soup = BeautifulSoup(wine_response.content, "html.parser")
+            scrape_data.append(self.parse_vineyard(wine_soup))
+            year -= 1
         self.save_data(scrape_data)
 
-
     def parse_vineyard(self, wine_soup):
-        winery = wine_soup.find_all('a', {'class':'winery'})[0].text
-        vintage = wine_soup.find_all('span', {'class':'vintage'})[0].text
-        print(winery.replace('\n', '')+vintage)
-
-        print('Waiting for page load...')
-        time.sleep(3.0)
-        prices = wine_soup.find_all('a', {'class':'anchor__anchor--3DOSm vintageList__showAll--7cLR3 anchor__vivinoLink--29E1-'})
-        print(prices)
-        exit()
+        price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0])
+        print(price)
+        
         review_data = {
-            "points": points,
-            "title": title,
-            "description": description,
-            "taster_name": taster_name,
-            "taster_twitter_handle": taster_twitter_handle,
-            "taster_photo": taster_photo,
-            "price": price,
-            "designation": designation,
-            "variety": variety,
-            "region_1": region_1,
-            "region_2": region_2,
-            "province": province,
-            "country": country,
-            "winery": winery,
+            "price": price
         }
 
         return review_data
@@ -179,6 +159,7 @@ if __name__ == "__main__":
     # Total review results on their site are conflicting, hardcode as the max tested value for now
     winmag_scraper = Scraper(
         premiers_grands_crus_classes,
+        1990,
         clear_old_data=True,
     )
 
