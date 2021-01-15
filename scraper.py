@@ -1,15 +1,9 @@
 from bs4 import BeautifulSoup
-from multiprocessing.dummy import Pool
-import os
-import shutil
-import time
 import requests
-import re
-import json
-import glob
+import pandas as pd
 
 # Our base URL includes the term 'france', which precises we want the french prices for the wines
-BASE_URL = "https://www.idealwine.com/uk/wine-prices/{}-grand-cru-classe.jsp"
+BASE_URL = "https://www.idealwine.com/uk/wine-prices/{}-1er-grand-cru-classe.jsp"
 
 session = requests.Session()
 HEADERS = {
@@ -32,26 +26,24 @@ class Scraper:
     """Scraper for iDealwine.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
 
     def __init__(
-        self, vineyard_list, min_vintage, clear_old_data=True
+        self, vineyard_list, min_vintage
     ):
-        self.clear_old_data = clear_old_data
         self.session = requests.Session()
-        self.start_time = time.time()
         self.vineyard_list = vineyard_list
         self.min_vintage = min_vintage
+        self.result = pd.DataFrame(0, index=range(2020,min_vintage-1, -1), columns=vineyard_list)
 
     def scrape_site(self):
-        if self.clear_old_data:
-            self.clear_data_dir()
 
+        columns=[]
         for vineyard in self.vineyard_list:
             print('Target vineyard: ', vineyard)
-            self.scrape_vineyard(BASE_URL.format(vineyard))
+            self.scrape_vineyard(vineyard)
         print("Scrape finished...")
-        self.condense_data()
+        return self.result
 
-    def scrape_vineyard(self, page_url, retry_count=0):
-        scrape_data = []
+    def scrape_vineyard(self, vineyard, retry_count=0):
+        page_url = BASE_URL.format(vineyard)
         try:
             print(page_url)
             response = self.session.get(page_url, headers=HEADERS)
@@ -70,101 +62,33 @@ class Scraper:
         
         wine_url = 'https://www.idealwine.com' + wine_link
         print(wine_url)
-        
         scrape_data = []
         year=2017
         while year >= self.min_vintage:
             wine_response = self.session.get(wine_url.replace('2017', str(year)), headers=HEADERS)
             wine_soup = BeautifulSoup(wine_response.content, "html.parser")
-            scrape_data.append(self.parse_vineyard(wine_soup))
+            self.result.loc[year, vineyard]=self.parse_vineyard(wine_soup)
             year -= 1
-        self.save_data(scrape_data)
+        return
 
     def parse_vineyard(self, wine_soup):
-        price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0])
-        print(price)
-        
-        review_data = {
-            "price": price
-        }
-
-        return review_data
-
-
-    def save_data(self, data):
-        filename = "{}/{}_{}.json".format(DATA_DIR, FILENAME, time.time())
         try:
-            os.makedirs(DATA_DIR)
-        except OSError:
-            pass
-        with open(filename, "w") as fout:
-            json.dump(data, fout)
+            price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0])
+        except:
+            price=0
+        return price
 
-    def clear_all_data(self):
-        self.clear_data_dir()
-        self.clear_output_data()
-
-    def clear_data_dir(self):
-        try:
-            shutil.rmtree(DATA_DIR)
-        except FileNotFoundError:
-            pass
-
-    def clear_output_data(self):
-        try:
-            os.remove("{}.json".format(FILENAME))
-        except FileNotFoundError:
-            pass
-
-    def condense_data(self):
-        print("Condensing Data...")
-        condensed_data = []
-        all_files = glob.glob("{}/*.json".format(DATA_DIR))
-        for file in all_files:
-            with open(file, "rb") as fin:
-                condensed_data += json.load(fin)
-        print(len(condensed_data))
-        filename = "{}.json".format(FILENAME)
-        with open(filename, "w") as fout:
-            json.dump(condensed_data, fout)
-
-    def update_scrape_status(self):
-        elapsed_time = round(time.time() - self.start_time, 2)
-        time_remaining = round(
-            (self.estimated_total_reviews - self.cross_process_review_count)
-            * (self.cross_process_review_count / elapsed_time),
-            2,
-        )
-        print(
-            "{4} page {0}/{1} reviews | {2} sec elapsed | {3} sec remaining\r".format(
-                self.cross_process_review_count,
-                self.estimated_total_reviews,
-                elapsed_time,
-                time_remaining,
-                self.page_scraped,
-            )
-        )
-
-
-class ReviewFormatException(Exception):
-    """Exception when the format of a review page is not understood by the scraper"""
-
-    def __init__(self, message):
-        self.message = message
-        super(Exception, self).__init__(message)
+    def write_table(self, data):
+        exit()
+        return
 
 
 if __name__ == "__main__":
-
     # Total review results on their site are conflicting, hardcode as the max tested value for now
-    winmag_scraper = Scraper(
+    scraper = Scraper(
         premiers_grands_crus_classes,
-        1990,
-        clear_old_data=True,
+        2010
     )
 
-    # Step 1: scrape data
-    winmag_scraper.scrape_site()
+    print(scraper.scrape_site().head(20).to_string())
 
-    # Step 2: condense data
-    winmag_scraper.condense_data()
