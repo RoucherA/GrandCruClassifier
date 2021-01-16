@@ -34,8 +34,6 @@ class Scraper:
         self.result = pd.DataFrame(0, index=range(2020,min_vintage-1, -1), columns=vineyard_list)
 
     def scrape_site(self):
-
-        columns=[]
         for vineyard in self.vineyard_list:
             print('Target vineyard: ', vineyard)
             self.scrape_vineyard(vineyard)
@@ -62,18 +60,24 @@ class Scraper:
         
         wine_url = 'https://www.idealwine.com' + wine_link
         print(wine_url)
-        scrape_data = []
-        year=2017
-        while year >= self.min_vintage:
-            wine_response = self.session.get(wine_url.replace('2017', str(year)), headers=HEADERS)
+        
+        # Initialize vintage by the highest, i.e. most recent vintage referenced on the website
+        wine_response = self.session.get(wine_url, headers=HEADERS)
+        wine_soup = BeautifulSoup(wine_response.content, "html.parser")
+        max_vintage_str = wine_soup.find_all('a', {'class':'ola selected-vintage'})[0].text
+        vintage = int(max_vintage_str)
+
+        while vintage >= self.min_vintage:
+            print(max_vintage_str, vintage, wine_url.replace(max_vintage_str, str(vintage)))
+            wine_response = self.session.get(wine_url.replace(max_vintage_str, str(vintage)), headers=HEADERS)
             wine_soup = BeautifulSoup(wine_response.content, "html.parser")
-            self.result.loc[year, vineyard]=self.parse_vineyard(wine_soup)
-            year -= 1
+            self.result.loc[vintage, vineyard]=self.parse_vineyard(wine_soup)
+            vintage -= 1
         return
 
     def parse_vineyard(self, wine_soup):
         try:
-            price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0])
+            price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0].replace(' ',''))
         except:
             price=0
         return price
@@ -89,6 +93,7 @@ if __name__ == "__main__":
         premiers_grands_crus_classes,
         2010
     )
-
-    print(scraper.scrape_site().head(20).to_string())
+    table = scraper.scrape_site()
+    print(table.head(20).to_string())
+    table.to_excel('table.xls', encoding='utf-16')
 
