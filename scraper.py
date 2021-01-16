@@ -15,12 +15,35 @@ HEADERS = {
 DATA_DIR = "data"
 FILENAME = "idealwine-data"
 
-premiers_grands_crus_classes = ['Château Lafite Rothschild Pauillac', 'Château Latour Pauillac', 'Château Mouton Rothschild Pauillac', 'Château Margaux', 'Château Haut-Brion Pessac-léognan']
+# Let us first create a list of all grands crus from the 1855 ranking of Medoc
+premiers_grands_crus_classes_rouges = [
+    'Château Lafite Rothschild Pauillac',
+    'Château Latour Pauillac',
+    'Château Mouton Rothschild Pauillac',
+    'Château Margaux',
+    'Château Haut-Brion Pessac-léognan'
+    ]
 for i in range(len(premiers_grands_crus_classes)):
-    premiers_grands_crus_classes[i] = premiers_grands_crus_classes[i].replace(' ', '-')
-print(premiers_grands_crus_classes)
+    premiers_grands_crus_classes[i] = premiers_grands_crus_classes[i].replace(' ', '-')+'-1er-cru'
 
-label = '(Premier Grand Cru Classé)'
+deuxiemes_grands_crus_classes_rouges = [
+    'Château Brane-Cantenac Margaux',
+    'Château Durfort-Vivens Margaux',
+    'Château Lascombes Margaux',
+    'Château Rauzan-Gassies Margaux',
+    'Château Rauzan-Ségla Margaux',
+    'Château Pichon-Longueville Baron Pauillac',
+    'Château Pichon-Longueville Comtesse de Lalande Pauillac',
+    "Château Cos d'Estournel Saint-Estèphe",
+    'Château Montrose Saint-Estèphe',
+    'Château Ducru-Beaucaillou Saint-Julien',
+    'Château Gruaud Larose Saint-Julien',
+    'Château Léoville Barton Saint-Julien',
+    'Château Léoville Las Cases Saint-Julien',
+    'Château Léoville Poyferré Saint-Julien'
+    ]
+for i in range(len(deuxiemes_grands_crus_classes)):
+    deuxiemes_grands_crus_classes[i] = deuxiemes_grands_crus_classes[i].replace(' ', '-')+'-2eme-cru'
 
 class Scraper:
     """Scraper for iDealwine.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
@@ -90,7 +113,7 @@ class Scraper:
 if __name__ == "__main__":
     # Total review results on their site are conflicting, hardcode as the max tested value for now
     scraper = Scraper(
-        premiers_grands_crus_classes,
+        premiers_grands_crus_classes + deuxiemes_grands_crus_classes,
         2010
     )
     table = scraper.scrape_site()
