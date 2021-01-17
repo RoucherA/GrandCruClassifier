@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 import concurrent.futures
-import threading
 import time
 from tqdm import tqdm
 
@@ -16,17 +15,14 @@ BASE_URL = 'https://www.idealwine.com'
 SEARCH_URL = BASE_URL+"/uk/wine-prices/{}.jsp"
 
 # Let us first create a list of all grands crus from the 1855 ranking of Medoc
-premiers_grands_crus_classes = [
+premiers_grands_crus_classes_1855 = [
     'Château Lafite Rothschild Pauillac',
     'Château Latour Pauillac',
     'Château Mouton Rothschild Pauillac',
     'Château Margaux',
     'Château Haut-Brion Pessac-léognan'
     ]
-for i in range(len(premiers_grands_crus_classes)):
-    premiers_grands_crus_classes[i] = premiers_grands_crus_classes[i].replace(' ', '-')+'-1er-grand-cru-classe'
-
-deuxiemes_grands_crus_classes = [
+deuxiemes_grands_crus_classes_1855 = [
     'Château Brane-Cantenac Margaux',
     'Château Durfort-Vivens Margaux',
     'Château Lascombes Margaux',
@@ -42,29 +38,45 @@ deuxiemes_grands_crus_classes = [
     'Château Léoville Las Cases Saint-Julien',
     'Château Léoville Poyferré Saint-Julien'
     ]
-for i in range(len(deuxiemes_grands_crus_classes)):
-    deuxiemes_grands_crus_classes[i] = deuxiemes_grands_crus_classes[i].replace(' ', '-')+'-2eme-grand-cru-classe'
+premiers_grands_crus_classes_st_emilion=[
+    'Château Ausone',
+    'Chateau Cheval Blanc',
+    'Chateau Pavie',
+    'Chateau Belair-Monange',
+    'Chateau Figeac',
+    'Chateau Magdelaine',
+    'Chateau TrotteVieille',
+    'Chateau Beausejour Duffau-Lagarrosse',
+    'Chateau Canon',
+    'Clos Fourtet',
+    'Chateau la Gaffeliere-Naudes'
+]
+wine_lists = [premiers_grands_crus_classes_1855, deuxiemes_grands_crus_classes_1855, premiers_grands_crus_classes_st_emilion]
+suffixes = ['-1er-grand-cru-classe', '-2eme-grand-cru-classe', '-Saint-Emilion-1er-Classe']
+for wine_list, suffix in zip(wine_lists, suffixes):
+    for i in range(len(wine_list)):
+        wine_list[i] = wine_list[i].replace(' ', '-') + suffix
+
 
 class Scraper:
     """Scraper for iDealwine.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
 
     def __init__(
-        self, vineyard_list, min_vintage
+        self, vineyard_list, min_vintage, num_workers
     ):
         self.start_time = time.time()
         self.session = requests.Session()
         self.vineyard_list = vineyard_list
         self.min_vintage = min_vintage
         self.result = pd.DataFrame(0, index=range(2020,min_vintage-1, -1), columns=vineyard_list)
-        self.tqdm_bar=None
+        self.num_workers = num_workers
 
     def scrape_site(self):
         print('Beginning to scrape iDealwine...')
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            self.tqdm_bar = tqdm(executor.map(self.scrape_vineyard, self.vineyard_list), total=len(self.vineyard_list))
-            res = list(self.tqdm_bar)
-        print("Scrape finished.")
-        return self.result
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers) as executor:
+            res = list(tqdm(executor.map(self.scrape_vineyard, self.vineyard_list), total=len(self.vineyard_list)))
+        print("Scraping finished in ", int(time.time() - self.start_time), 's.\n')
+        return self.result 
 
     def scrape_vineyard(self, vineyard, retry_count=0):
         page_url = SEARCH_URL.format(vineyard)
@@ -80,7 +92,7 @@ class Scraper:
                 raise
 
         soup = BeautifulSoup(response.content, "html.parser")
-        # With the precision of our request, the target wine normally shows up first, thus we get it with index 0
+        # With the precision of our request, the target wine normally shows up first, thus we obtain it with index 0
         wine_link = soup.find_all("table", {"id": "tbResult"})[0].a['href']
         wine_url = BASE_URL + wine_link
         
@@ -103,18 +115,14 @@ class Scraper:
             price=0
         return price
 
-    def write_table(self, data):
-        exit()
-        return
-
-
 if __name__ == "__main__":
     # Total review results on their site are conflicting, hardcode as the max tested value for now
     scraper = Scraper(
-        premiers_grands_crus_classes + deuxiemes_grands_crus_classes,
-        2010
+        premiers_grands_crus_classes_1855 + deuxiemes_grands_crus_classes_1855 + premiers_grands_crus_classes_st_emilion,
+        1950,
+        num_workers=10
     )
     table = scraper.scrape_site()
-    print(table.iloc[:5,:5].to_string())
-    table.to_excel('table.xlsx', encoding='utf-16')
+    print(table.iloc[:5,:3].to_string())
+    table.to_excel('data/table.xlsx', encoding='utf-16')
 
