@@ -76,7 +76,7 @@ class Scraper:
         self.start_time = time.time()
         self.session = requests.Session()
         self.vineyard_list = vineyard_list
-        self.result = pd.DataFrame(0, index=[vineyard.name for vineyard in self.vineyard_list], columns=['Category']+list(range(min_vintage, 2020, 1)))
+        self.result = pd.DataFrame(index=[vineyard.name for vineyard in self.vineyard_list], columns=['Category']+list(range(min_vintage, 2020, 1)))
         self.min_vintage = min_vintage
         self.num_workers = num_workers
 
@@ -112,11 +112,13 @@ class Scraper:
         max_vintage_str = wine_soup.find_all('a', {'class':'ola selected-vintage'})[0].text
         max_vintage = int(max_vintage_str)
 
+        self.result.loc[vineyard.name, 'Category'] = vineyard.category
         for vintage in range(max_vintage, self.min_vintage-1, -1):
             wine_response = self.session.get(wine_url.replace(max_vintage_str, str(vintage)), headers=HEADERS)
             wine_soup = BeautifulSoup(wine_response.content, "html.parser")
-            self.result.loc[vineyard.name, vintage] = self.parse_vineyard(wine_soup)
-            self.result.loc[vineyard.name, 'Category'] = vineyard.category
+            price = self.parse_vineyard(wine_soup)
+            if price > 0:
+                self.result.loc[vineyard.name, vintage] = price
 
         return
 
@@ -124,7 +126,7 @@ class Scraper:
         try:
             price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0].replace(' ',''))
         except:
-            price=0
+            price=-100
         return price
 
 if __name__ == "__main__":
