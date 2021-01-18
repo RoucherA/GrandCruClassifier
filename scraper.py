@@ -51,12 +51,21 @@ premiers_grands_crus_classes_st_emilion=[
     'Clos Fourtet',
     'Chateau la Gaffeliere-Naudes'
 ]
-wine_lists = [premiers_grands_crus_classes_1855, deuxiemes_grands_crus_classes_1855, premiers_grands_crus_classes_st_emilion]
-suffixes = ['-1er-grand-cru-classe', '-2eme-grand-cru-classe', '-Saint-Emilion-1er-Classe']
-for wine_list, suffix in zip(wine_lists, suffixes):
-    for i in range(len(wine_list)):
-        wine_list[i] = wine_list[i].replace(' ', '-') + suffix
 
+
+class Vineyard:
+    def __init__(self, name, category, search_suffix):
+        self.name = name
+        self.category = category
+        self.search_suffix = search_suffix
+
+VINEYARD_LIST = []
+for vineyard_name in premiers_grands_crus_classes_1855:
+    VINEYARD_LIST.append(Vineyard(vineyard_name, 'Premier cru 1855','-1er-grand-cru-classe'))
+for vineyard_name in deuxiemes_grands_crus_classes_1855:
+    VINEYARD_LIST.append(Vineyard(vineyard_name, 'Deuxieme cru 1855','-2eme-grand-cru-classe'))
+for vineyard_name in premiers_grands_crus_classes_st_emilion:
+    VINEYARD_LIST.append(Vineyard(vineyard_name, 'Premier cru Saint Emilion','-Saint-Emilion-1er-Classe'))
 
 class Scraper:
     """Scraper for iDealwine.com to collect wine reviews. Adapted from @zackthoutt webscraper."""
@@ -67,8 +76,8 @@ class Scraper:
         self.start_time = time.time()
         self.session = requests.Session()
         self.vineyard_list = vineyard_list
+        self.result = pd.DataFrame(0, index=[vineyard.name for vineyard in self.vineyard_list], columns=['Category']+list(range(min_vintage, 2020, 1)))
         self.min_vintage = min_vintage
-        self.result = pd.DataFrame(0, index=range(2020,min_vintage-1, -1), columns=vineyard_list)
         self.num_workers = num_workers
 
     def scrape_site(self):
@@ -79,7 +88,8 @@ class Scraper:
         return self.result 
 
     def scrape_vineyard(self, vineyard, retry_count=0):
-        page_url = SEARCH_URL.format(vineyard)
+        vineyard_search_term = vineyard.name.replace(' ', '-') + vineyard.search_suffix
+        page_url = SEARCH_URL.format(vineyard_search_term)
         try:
             response = self.session.get(page_url, headers=HEADERS)
 
@@ -105,7 +115,9 @@ class Scraper:
         for vintage in range(max_vintage, self.min_vintage-1, -1):
             wine_response = self.session.get(wine_url.replace(max_vintage_str, str(vintage)), headers=HEADERS)
             wine_soup = BeautifulSoup(wine_response.content, "html.parser")
-            self.result.loc[vintage, vineyard]=self.parse_vineyard(wine_soup)
+            self.result.loc[vineyard.name, vintage] = self.parse_vineyard(wine_soup)
+            self.result.loc[vineyard.name, 'Category'] = vineyard.category
+
         return
 
     def parse_vineyard(self, wine_soup):
@@ -118,11 +130,11 @@ class Scraper:
 if __name__ == "__main__":
     # Total review results on their site are conflicting, hardcode as the max tested value for now
     scraper = Scraper(
-        premiers_grands_crus_classes_1855 + deuxiemes_grands_crus_classes_1855 + premiers_grands_crus_classes_st_emilion,
+        VINEYARD_LIST,
         1950,
         num_workers=10
     )
     table = scraper.scrape_site()
     print(table.iloc[:5,:3].to_string())
-    table.to_excel('data/table.xlsx', encoding='utf-16')
+    table.to_excel('data/prices.xlsx', encoding='utf-16')
 
