@@ -4,7 +4,7 @@ import pandas as pd
 import concurrent.futures
 import time
 from tqdm import tqdm
-
+import numpy as np
 #HEADERS = {
 #    "user-agent": (
 #        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 "
@@ -63,7 +63,8 @@ premiers_grands_crus_classes_st_emilion=[
     'Chateau Beausejour Duffau-Lagarrosse',
     'Chateau Canon',
     'Clos Fourtet',
-    'Chateau la Gaffeliere-Naudes'
+    'Chateau la Gaffeliere-Naudes',
+    'Chateau Angelus'
 ]
 
 
@@ -138,7 +139,7 @@ class Scraper:
                 price = int(wine_soup.find_all('article', {'class':'indice-table'})[0].text.split('€')[0].replace(' ',''))
                 self.prices_idealwine.loc[vineyard.name, vintage] = price
             except:
-                self.prices_idealwine.loc[vineyard.name, vintage] = np.Nan
+                self.prices_idealwine.loc[vineyard.name, vintage] = np.nan
         return
 
 
