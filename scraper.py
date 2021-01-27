@@ -66,7 +66,12 @@ premiers_grands_crus_classes_st_emilion=[
     'Chateau la Gaffeliere-Naudes',
     'Chateau Angelus'
 ]
-
+other_interesting=[
+    'Château Palmer Margaux',
+    'Château Lafleur Pomerol',
+    'Le Pin Pomerol',
+    'Petrus Pomerol'
+]
 
 class Vineyard:
     def __init__(self, name, category, search_suffix):
@@ -81,6 +86,8 @@ for vineyard_name in deuxiemes_grands_crus_classes_1855:
     VINEYARD_LIST.append(Vineyard(vineyard_name, 'Deuxieme cru 1855','-2eme-grand-cru-classe'))
 for vineyard_name in premiers_grands_crus_classes_st_emilion:
     VINEYARD_LIST.append(Vineyard(vineyard_name, 'Premier cru Saint Emilion','-Saint-Emilion-1er-Classe'))
+for vineyard_name in other_interesting:
+    VINEYARD_LIST.append(Vineyard(vineyard_name, 'Other','-bordeaux'))
 
 class Scraper:
     """Scraper that collects wine prices and critics. Adapted from @zackthoutt webscraper."""
