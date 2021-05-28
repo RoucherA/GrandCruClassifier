@@ -37,34 +37,34 @@ premiers_grands_crus_classes_1855 = [
     'Château Haut-Brion Pessac-léognan'
     ]
 deuxiemes_grands_crus_classes_1855 = [
-    'Château Brane-Cantenac Margaux',
-    'Château Durfort-Vivens Margaux',
-    'Château Lascombes Margaux',
-    'Château Rauzan-Gassies Margaux',
-    'Château Rauzan-Ségla Margaux',
-    'Château Pichon-Longueville Baron Pauillac',
-    'Château Pichon-Longueville Comtesse de Lalande Pauillac',
-    "Château Clos d'Estournel Saint-Estèphe",
-    'Château Montrose Saint-Estèphe',
-    'Château Ducru-Beaucaillou Saint-Julien',
-    'Château Gruaud Larose Saint-Julien',
-    'Château Léoville Barton Saint-Julien',
-    'Château Léoville Las Cases Saint-Julien',
-    'Château Léoville Poyferré Saint-Julien'
+'Château Brane-Cantenac Margaux',
+'Château Durfort-Vivens Margaux',
+'Château Lascombes Margaux',
+'Château Rauzan-Gassies Margaux',
+'Château Rauzan-Ségla Margaux',
+'Château Pichon-Longueville Baron Pauillac',
+'Château Pichon-Longueville Comtesse de Lalande Pauillac',
+"Château Clos d'Estournel Saint-Estèphe",
+'Château Montrose Saint-Estèphe',
+'Château Ducru-Beaucaillou Saint-Julien',
+'Château Gruaud Larose Saint-Julien',
+'Château Léoville Barton Saint-Julien',
+'Château Léoville Las Cases Saint-Julien',
+'Château Léoville Poyferré Saint-Julien'
     ]
 premiers_grands_crus_classes_st_emilion=[
     'Château Ausone',
-    'Chateau Cheval Blanc',
-    'Chateau Pavie',
-    'Chateau Belair-Monange',
-    'Chateau Figeac',
-    'Chateau Magdelaine',
-    'Chateau TrotteVieille',
-    'Chateau Beausejour Duffau-Lagarrosse',
-    'Chateau Canon',
+    'Château Cheval Blanc',
+    'Château Pavie',
+    'Château Belair-Monange',
+    'Château Figeac',
+    'Château Magdelaine',
+    'Château TrotteVieille',
+    'Château Beausejour Duffau-Lagarrosse',
+    'Château Canon',
     'Clos Fourtet',
-    'Chateau la Gaffeliere-Naudes',
-    'Chateau Angelus'
+    'Château la Gaffeliere-Naudes',
+    'Château Angelus'
 ]
 other_interesting=[
     'Château Palmer Margaux',
@@ -158,6 +158,6 @@ if __name__ == "__main__":
         num_workers=1
     )
     table = scraper.scrape()
-    print(table.iloc[:5,:3].to_string())
-    table.to_excel('data/prices.xlsx', encoding='utf-16')
+    print(table.iloc[:5,-10:].to_string())
+    table.to_excel('data/prices_end_may.xlsx', encoding='utf-16')
 
